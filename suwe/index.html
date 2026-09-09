@@ -1,0 +1,530 @@
+---
+layout: null
+title: Suwe
+permalink: /suwe/
+---
+{% raw %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Suwe — the Nigerian hopscotch game</title>
+<meta name="description" content="Play Suwe online — the classic Nigerian playground game. Toss your pebble, hop the court, don't touch the lines!">
+<style>
+  :root{
+    --sand:#d9b07c; --sand-dark:#c79a63; --chalk:#fdf7ea;
+    --ink:#3a2a18; --green:#1f8a4c; --accent:#d95f2b; --gold:#f2b134;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:#2e2015; color:var(--ink);
+    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    height:100%; overscroll-behavior:none;}
+  body{display:flex; align-items:center; justify-content:center; min-height:100vh;}
+  #wrap{position:relative; width:100%; max-width:440px; margin:0 auto; padding:8px;
+    user-select:none; -webkit-user-select:none; touch-action:manipulation;}
+  #hud{display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:8px 10px; margin-bottom:6px; background:#3f2c1a; border-radius:12px;
+    color:var(--chalk); font-size:14px;}
+  #hud .title{font-weight:800; letter-spacing:2px; color:var(--gold); font-size:16px;}
+  #hud .stat{white-space:nowrap;}
+  #hud .stat b{color:var(--gold);}
+  #cv{display:block; width:100%; border-radius:14px; background:var(--sand);
+    box-shadow:0 8px 30px rgba(0,0,0,.45); cursor:pointer;}
+  #msg{position:absolute; left:50%; top:34%; transform:translate(-50%,-50%);
+    pointer-events:none; font-weight:800; font-size:22px; color:var(--chalk);
+    text-shadow:0 2px 6px rgba(0,0,0,.55); opacity:0; transition:opacity .18s;
+    text-align:center; width:90%;}
+  .overlay{position:absolute; inset:8px; border-radius:14px; display:flex;
+    align-items:center; justify-content:center; background:rgba(38,25,12,.88);
+    z-index:5;}
+  .card{background:#fbf1dd; border-radius:16px; padding:22px 20px; width:min(340px,88%);
+    text-align:center; box-shadow:0 10px 40px rgba(0,0,0,.5); max-height:86%;
+    overflow-y:auto;}
+  .card h1{margin:0 0 2px; font-size:34px; letter-spacing:4px; color:var(--accent);}
+  .card h2{margin:0 0 10px; font-size:15px; font-weight:600; color:#7a5a35;}
+  .card p{font-size:14px; line-height:1.5; margin:10px 0; text-align:left;}
+  .card p.center{text-align:center;}
+  .btn{display:block; width:100%; margin:8px 0; padding:12px; font-size:16px;
+    font-weight:700; border:none; border-radius:10px; cursor:pointer;
+    background:var(--green); color:#fff;}
+  .btn.alt{background:var(--accent);}
+  .btn.ghost{background:transparent; color:#7a5a35; border:2px solid #d8c39f;}
+  .rules li{font-size:13.5px; line-height:1.55; text-align:left; margin:6px 0;}
+  #mute{background:none; border:none; font-size:18px; cursor:pointer; color:var(--chalk);}
+  .hidden{display:none !important;}
+  .kbd{background:#eadfc6; border-radius:4px; padding:0 5px; font-family:monospace;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hud">
+    <span class="title">SUWE</span>
+    <span class="stat" id="hudTurn"></span>
+    <span class="stat">Box <b id="hudBox">1</b></span>
+    <span class="stat" id="hudLives">♥♥♥</span>
+    <span class="stat">Score <b id="hudScore">0</b></span>
+    <button id="mute" title="Sound on/off">🔊</button>
+  </div>
+
+  <canvas id="cv" width="420" height="660"></canvas>
+  <div id="msg"></div>
+
+  <div class="overlay" id="menu">
+    <div class="card">
+      <h1>SUWE</h1>
+      <h2>the Nigerian hopscotch game</h2>
+      <p class="center">Toss your pebble, hop the court,<br>and never touch a line!</p>
+      <button class="btn" id="btn1p">Play solo</button>
+      <button class="btn alt" id="btn2p">2 players (pass &amp; play)</button>
+      <button class="btn ghost" id="btnHelp">How to play</button>
+      <p class="center" style="font-size:12px;color:#9a7c52;">Best score: <b id="menuBest">0</b></p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="help">
+    <div class="card">
+      <h1 style="font-size:24px;">How to play</h1>
+      <ol class="rules">
+        <li><b>Toss</b> — tap (or press <span class="kbd">Space</span>) to stop the power bar
+          inside the marked band and land your pebble in the glowing target box.
+          Land on a line or in the wrong box and you foul!</li>
+        <li><b>Hop out</b> — tap when the slider is inside the green zone to hop from box
+          to box. You must jump <i>over</i> the box holding your pebble.</li>
+        <li><b>Hop back</b> — at the top, turn around and hop home. On the way back you
+          stoop to pick your pebble up from the box beside it.</li>
+        <li><b>Wobbles</b> — one bad tap is a wobble. Two wobbles in the same run means
+          you stepped on a line: foul!</li>
+        <li>Finish boxes 1 to 6 to win. In 2-player mode a foul passes the turn —
+          first to clear box 6 takes the game.</li>
+      </ol>
+      <p style="font-size:12.5px;color:#7a5a35;">Suwe is a beloved Nigerian playground game,
+        traditionally scratched into sand or drawn in chalk. Players take turns tossing a
+        pebble into numbered squares and hopping through on one foot — touch a line and
+        your turn is over.</p>
+      <button class="btn ghost" id="btnBack">Back</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="end">
+    <div class="card">
+      <h1 id="endTitle" style="font-size:28px;">You win!</h1>
+      <p class="center" id="endText"></p>
+      <button class="btn" id="btnAgain">Play again</button>
+      <button class="btn ghost" id="btnMenu">Menu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ---------------- constants & geometry ---------------- */
+const W=420, H=660;
+const COURT={x:80, y:190, colW:130, rowH:115};
+const LINE_M=7;                       // landing this close to a line = foul
+// box layout (snake path): r0 = top row
+const BOXES={1:{c:0,r:2},2:{c:1,r:2},3:{c:1,r:1},4:{c:0,r:1},5:{c:0,r:0},6:{c:1,r:0}};
+const START={x:210,y:585};
+const MAX_REACH=410;
+
+function boxRect(n){const b=BOXES[n];
+  return {x:COURT.x+b.c*COURT.colW, y:COURT.y+b.r*COURT.rowH, w:COURT.colW, h:COURT.rowH};}
+function boxCenter(n){const r=boxRect(n); return {x:r.x+r.w/2, y:r.y+r.h/2};}
+function nodePos(node){return node.box===0?{x:START.x,y:START.y}:boxCenter(node.box);}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function idealPower(n){return dist(START,boxCenter(n))/MAX_REACH*100;}
+function tri(t){t=t%1; return t<0.5?t*2:2-t*2;}   // 0→1→0 triangle wave
+
+/* ---------------- dom ---------------- */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const dpr=Math.min(window.devicePixelRatio||1,2);
+cv.width=W*dpr; cv.height=H*dpr; ctx.scale(dpr,dpr);
+const $=id=>document.getElementById(id);
+const msgEl=$("msg");
+
+/* ---------------- audio ---------------- */
+let AC=null, muted=false;
+function beep(freq,dur,type,vol,delay){
+  if(muted) return;
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime+(delay||0);
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.type=type||"sine"; o.frequency.value=freq;
+    g.gain.setValueAtTime(vol||0.12,t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+dur);
+  }catch(e){}
+}
+const snd={
+  hop(){beep(520,0.09,"triangle",0.14);},
+  perfect(){beep(760,0.1,"triangle",0.14);},
+  wobble(){beep(180,0.2,"sawtooth",0.1);},
+  foul(){beep(140,0.35,"sawtooth",0.14); beep(110,0.35,"sawtooth",0.12,0.12);},
+  throwUp(){beep(300,0.12,"sine",0.1); beep(430,0.12,"sine",0.1,0.08);},
+  land(){beep(240,0.08,"square",0.08);},
+  pickup(){beep(600,0.09,"triangle",0.12); beep(820,0.12,"triangle",0.12,0.09);},
+  round(){[523,659,784].forEach((f,i)=>beep(f,0.16,"triangle",0.13,i*0.09));},
+  win(){[523,659,784,1047,784,1047].forEach((f,i)=>beep(f,0.22,"triangle",0.14,i*0.12));}
+};
+$("mute").addEventListener("click",e=>{e.stopPropagation();
+  muted=!muted; $("mute").textContent=muted?"🔇":"🔊";});
+
+/* ---------------- game state ---------------- */
+let best=0;
+try{best=parseInt(localStorage.getItem("suwe-best")||"0",10)||0;}catch(e){}
+$("menuBest").textContent=best;
+
+const G={
+  state:"menu",          // menu|throw|flight|hop|hopanim|pickup|turnend|over
+  mode:1, cur:0,
+  players:[], lives:3,
+  target:1,              // current box being played (of current player)
+  pebble:null,           // {x,y} when resting on ground
+  run:null,              // hop run data
+  meterT:0, meterSpeed:1,
+  barT:0, barSpeed:1, zoneHalf:0.16,
+  anim:null, t:0, msgTimer:0,
+  hero:{x:START.x,y:START.y,air:0,face:-1,lean:0}, // face -1 = up-court
+};
+
+function curP(){return G.players[G.cur];}
+function newPlayers(mode){
+  G.players=[];
+  for(let i=0;i<mode;i++) G.players.push({target:1,score:0,shirt:i===0?"#1f8a4c":"#d95f2b",name:"Player "+(i+1)});
+}
+
+/* ---------------- messages / hud ---------------- */
+function toast(text,ms){msgEl.textContent=text; msgEl.style.opacity=1; G.msgTimer=ms||1100;}
+function hud(){
+  $("hudBox").textContent=G.target;
+  $("hudScore").textContent=curP()?curP().score:0;
+  $("hudLives").textContent=G.mode===1?"♥".repeat(G.lives)+"♡".repeat(3-G.lives):"";
+  $("hudTurn").textContent=G.mode===2?curP().name:"";
+  $("hudTurn").style.color=G.mode===2?curP().shirt:"";
+}
+
+/* ---------------- round / turn flow ---------------- */
+function startGame(mode){
+  G.mode=mode; G.cur=0; G.lives=3; newPlayers(mode);
+  $("menu").classList.add("hidden"); $("end").classList.add("hidden");
+  beginThrow(true);
+}
+function beginThrow(fresh){
+  G.target=curP().target;
+  G.state="throw"; G.meterT=Math.random();
+  G.meterSpeed=0.55+G.target*0.07;
+  G.pebble=null;
+  G.hero.x=START.x; G.hero.y=START.y; G.hero.air=0; G.hero.face=-1; G.hero.lean=0;
+  if(fresh) toast((G.mode===2?curP().name+" — ":"")+"Toss into box "+G.target+"!",1400);
+  hud();
+}
+function foul(reason){
+  snd.foul(); toast(reason,1500);
+  G.state="turnend"; G.t=0;
+  G.after=()=>{
+    if(G.mode===1){
+      G.lives--; hud();
+      if(G.lives<=0){ endGame(false); return; }
+      beginThrow(true);
+    }else{
+      G.cur=(G.cur+1)%2;
+      beginThrow(true);
+    }
+  };
+}
+function roundDone(){
+  const p=curP();
+  p.score+=50; snd.round();
+  if(p.target>=6){ endGame(true); return; }
+  p.target++;
+  toast("Box "+p.target+" — keep going!",1300);
+  G.state="turnend"; G.t=0; G.after=()=>beginThrow(false);
+  hud();
+}
+function endGame(won){
+  G.state="over";
+  const p=curP();
+  if(G.mode===1 && p.score>best){best=p.score;
+    try{localStorage.setItem("suwe-best",String(best));}catch(e){}}
+  $("menuBest").textContent=best;
+  $("endTitle").textContent = won ? (G.mode===2?p.name+" wins!":"You cleared the court!") : "Game over";
+  $("endText").innerHTML = won
+    ? (G.mode===2 ? "All six boxes cleared — the court is theirs!"
+                  : "All six boxes! Score: <b>"+p.score+"</b> · Best: <b>"+best+"</b><br>Time to claim your house 🏠")
+    : "Score: <b>"+p.score+"</b> · Best: <b>"+best+"</b>";
+  if(won) snd.win();
+  $("end").classList.remove("hidden");
+}
+
+/* ---------------- throw ---------------- */
+function doThrow(){
+  const p=tri(G.meterT)*100;
+  const ideal=idealPower(G.target);
+  const err=p-ideal;
+  const c=boxCenter(G.target);
+  const ux=(c.x-START.x)/dist(START,c), uy=(c.y-START.y)/dist(START,c);
+  const along=p/100*MAX_REACH;
+  const lat=(Math.random()*2-1)*(3+Math.abs(err)*2.0);
+  const land={x:START.x+ux*along-uy*lat, y:START.y+uy*along+ux*lat};
+  snd.throwUp();
+  G.state="flight"; G.t=0;
+  G.anim={from:{x:START.x,y:START.y-30}, to:land, dur:0.7,
+          perfect:Math.abs(err)<3.5};
+}
+function resolveLanding(pt){
+  snd.land();
+  const r=boxRect(G.target);
+  const inTarget = pt.x>r.x+LINE_M && pt.x<r.x+r.w-LINE_M &&
+                   pt.y>r.y+LINE_M && pt.y<r.y+r.h-LINE_M;
+  if(inTarget){
+    G.pebble={x:pt.x,y:pt.y};
+    if(G.anim.perfect){curP().score+=25; toast("Perfect toss! +25",1000); snd.perfect();}
+    else toast("Good toss — now hop!",1000);
+    hud(); startRun(); return;
+  }
+  // why did it fail?
+  const inTargetLoose = pt.x>r.x&&pt.x<r.x+r.w&&pt.y>r.y&&pt.y<r.y+r.h;
+  if(inTargetLoose){ foul("On the line!"); return; }
+  for(const n in BOXES){ const q=boxRect(+n);
+    if(pt.x>q.x&&pt.x<q.x+q.w&&pt.y>q.y&&pt.y<q.y+q.h){ foul("Wrong box!"); return; } }
+  foul("Missed the court!");
+}
+
+/* ---------------- hop run ---------------- */
+function buildRun(target){
+  const out=[1,2,3,4,5,6].filter(n=>n!==target);
+  const nodes=[{box:0}];
+  out.forEach(n=>nodes.push({box:n}));
+  nodes[nodes.length-1].turn=true;
+  const back=out.slice(0,-1).reverse();
+  back.forEach(n=>nodes.push({box:n,back:true}));
+  nodes.push({box:0,back:true});
+  const pickupBox = target===6 ? out[out.length-1] : target+1;
+  // pickup happens at first occurrence of pickupBox at/after the turn node
+  const turnIdx=nodes.findIndex(n=>n.turn);
+  for(let i=turnIdx;i<nodes.length;i++){
+    if(nodes[i].box===pickupBox){ nodes[i].pickup=true; break; }
+  }
+  return {nodes, idx:0, wobbles:0, carrying:false};
+}
+function startRun(){
+  G.run=buildRun(G.target);
+  G.state="hop"; G.barT=0;
+  G.barSpeed=0.9+G.target*0.12;
+  G.zoneHalf=Math.max(0.17-(G.target-1)*0.016,0.085);
+}
+function doHop(){
+  const pos=tri(G.barT);
+  const good=Math.abs(pos-0.5)<=G.zoneHalf;
+  if(!good){
+    G.run.wobbles++;
+    if(G.run.wobbles>=2){ foul("Stepped on a line!"); return; }
+    snd.wobble(); toast("Wobble! Careful…",900);
+  }else{
+    snd.hop(); curP().score+=10; hud();
+  }
+  const run=G.run;
+  const from=nodePos(run.nodes[run.idx]);
+  const toNode=run.nodes[run.idx+1];
+  const to=nodePos(toNode);
+  G.state="hopanim"; G.t=0;
+  G.anim={from,to,dur:0.36,arc:30+dist(from,to)*0.14,toNode};
+}
+function hopLanded(){
+  const run=G.run; run.idx++;
+  const node=run.nodes[run.idx];
+  G.hero.x=nodePos(node).x; G.hero.y=nodePos(node).y; G.hero.air=0;
+  if(node.turn){ G.hero.face=1; toast("Turn around!",800); }
+  if(node.pickup && !run.carrying){
+    G.state="pickup"; G.t=0; return;
+  }
+  if(run.idx>=run.nodes.length-1){ roundDone(); return; }
+  G.state="hop"; G.barT=0; // restart marker at the left edge
+}
+function pickupDone(){
+  G.run.carrying=true; G.pebble=null;
+  snd.pickup(); toast("Picked it up!",900);
+  if(G.run.idx>=G.run.nodes.length-1){ roundDone(); return; }
+  G.state="hop"; G.barT=0;
+}
+
+/* ---------------- input ---------------- */
+function action(){
+  if(AC&&AC.state==="suspended") AC.resume();
+  if(G.state==="throw") doThrow();
+  else if(G.state==="hop") doHop();
+}
+cv.addEventListener("pointerdown",e=>{e.preventDefault(); action();});
+window.addEventListener("keydown",e=>{
+  if(e.code==="Space"||e.code==="Enter"){ e.preventDefault(); action(); }
+});
+$("btn1p").addEventListener("click",()=>startGame(1));
+$("btn2p").addEventListener("click",()=>startGame(2));
+$("btnHelp").addEventListener("click",()=>{$("menu").classList.add("hidden");$("help").classList.remove("hidden");});
+$("btnBack").addEventListener("click",()=>{$("help").classList.add("hidden");$("menu").classList.remove("hidden");});
+$("btnAgain").addEventListener("click",()=>startGame(G.mode));
+$("btnMenu").addEventListener("click",()=>{$("end").classList.add("hidden");$("menu").classList.remove("hidden");G.state="menu";});
+
+/* ---------------- drawing ---------------- */
+// deterministic sand speckles
+const speckles=[];
+(function(){let s=42; const rnd=()=> (s=(s*16807)%2147483647)/2147483647;
+  for(let i=0;i<260;i++) speckles.push({x:rnd()*W,y:rnd()*H,r:rnd()*1.6+0.4,a:rnd()*0.14+0.04});})();
+
+function drawGround(){
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"#e0b988"); g.addColorStop(1,"#c69a62");
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#8a6238";
+  for(const s of speckles){ctx.globalAlpha=s.a; ctx.beginPath();
+    ctx.arc(s.x,s.y,s.r,0,7); ctx.fill();}
+  ctx.globalAlpha=1;
+}
+function chalkRect(x,y,w,h){
+  ctx.strokeStyle="rgba(253,247,234,0.92)"; ctx.lineWidth=5; ctx.lineJoin="round";
+  ctx.strokeRect(x,y,w,h);
+  ctx.strokeStyle="rgba(253,247,234,0.35)"; ctx.lineWidth=8;
+  ctx.strokeRect(x,y,w,h);
+}
+function drawCourt(){
+  const cw=COURT.colW*2, chh=COURT.rowH*3;
+  ctx.fillStyle="rgba(255,244,220,0.10)";
+  ctx.fillRect(COURT.x,COURT.y,cw,chh);
+  chalkRect(COURT.x,COURT.y,cw,chh);
+  // inner lines
+  ctx.strokeStyle="rgba(253,247,234,0.92)"; ctx.lineWidth=5;
+  ctx.beginPath();
+  ctx.moveTo(COURT.x+COURT.colW,COURT.y); ctx.lineTo(COURT.x+COURT.colW,COURT.y+chh);
+  for(let r=1;r<3;r++){ctx.moveTo(COURT.x,COURT.y+r*COURT.rowH);
+    ctx.lineTo(COURT.x+cw,COURT.y+r*COURT.rowH);}
+  ctx.stroke();
+  // numbers + target glow
+  for(const n in BOXES){
+    const c=boxCenter(+n), num=+n;
+    if(G.state!=="menu" && num===G.target && !G.pebble){
+      const pulse=0.10+0.08*Math.sin(performance.now()/300);
+      ctx.fillStyle="rgba(242,177,52,"+pulse.toFixed(3)+")";
+      const r=boxRect(num); ctx.fillRect(r.x+4,r.y+4,r.w-8,r.h-8);
+    }
+    ctx.fillStyle="rgba(253,247,234,0.8)";
+    ctx.font="700 30px Georgia,serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(String(num),c.x,c.y);
+  }
+  // start line
+  ctx.strokeStyle="rgba(253,247,234,0.6)"; ctx.lineWidth=4;
+  ctx.setLineDash([10,8]);
+  ctx.beginPath(); ctx.moveTo(COURT.x-20,565); ctx.lineTo(COURT.x+cw+20,565); ctx.stroke();
+  ctx.setLineDash([]);
+}
+function drawPebble(x,y,scale){
+  scale=scale||1;
+  ctx.fillStyle="rgba(0,0,0,0.25)";
+  ctx.beginPath(); ctx.ellipse(x,y+4*scale,7*scale,3.4*scale,0,0,7); ctx.fill();
+  const g=ctx.createRadialGradient(x-2,y-2,1,x,y,7*scale);
+  g.addColorStop(0,"#9aa0a8"); g.addColorStop(1,"#5c626b");
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.ellipse(x,y,7*scale,5.6*scale,0.3,0,7); ctx.fill();
+}
+function drawHero(x,y,air,face,lean,shirt){
+  ctx.save(); ctx.translate(x,y);
+  // shadow
+  ctx.fillStyle="rgba(0,0,0,0.28)";
+  const sh=Math.max(0.35,1-air/70);
+  ctx.beginPath(); ctx.ellipse(0,8,13*sh,5*sh,0,0,7); ctx.fill();
+  ctx.translate(0,-air); ctx.rotate(lean*0.5);
+  const skin="#8a5a33";
+  // hopping leg
+  ctx.strokeStyle=skin; ctx.lineWidth=5; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(0,-14); ctx.lineTo(2*face,-2); ctx.lineTo(0,6); ctx.stroke();
+  // tucked leg
+  ctx.beginPath(); ctx.moveTo(0,-14); ctx.lineTo(-7*face,-8); ctx.lineTo(-10*face,-14); ctx.stroke();
+  // torso
+  ctx.strokeStyle=shirt; ctx.lineWidth=9;
+  ctx.beginPath(); ctx.moveTo(0,-14); ctx.lineTo(0,-34); ctx.stroke();
+  // arms out for balance
+  ctx.strokeStyle=skin; ctx.lineWidth=4.5;
+  const flap=Math.sin(performance.now()/140)*3;
+  ctx.beginPath(); ctx.moveTo(-14,-30+flap); ctx.lineTo(0,-28); ctx.lineTo(14,-30-flap); ctx.stroke();
+  // head
+  ctx.fillStyle=skin;
+  ctx.beginPath(); ctx.arc(0,-43,8.5,0,7); ctx.fill();
+  ctx.restore();
+}
+function drawBar(label,pos,zoneC,zoneHalf,color){
+  const bx=40,bw=W-80,by=612,bh=26;
+  ctx.fillStyle="rgba(40,26,12,0.75)";
+  ctx.beginPath(); ctx.roundRect(bx-6,by-6,bw+12,bh+12,10); ctx.fill();
+  ctx.fillStyle="#e8d9bb";
+  ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,6); ctx.fill();
+  ctx.fillStyle=color;
+  const zx=bx+(zoneC-zoneHalf)*bw, zw=zoneHalf*2*bw;
+  ctx.beginPath(); ctx.roundRect(zx,by,zw,bh,6); ctx.fill();
+  ctx.fillStyle="#3a2a18";
+  ctx.fillRect(bx+pos*bw-2.5,by-4,5,bh+8);
+  ctx.fillStyle="rgba(253,247,234,0.95)";
+  ctx.font="700 13px sans-serif"; ctx.textAlign="center";
+  ctx.fillText(label,W/2,by-12);
+}
+
+/* ---------------- main loop ---------------- */
+let last=performance.now();
+function frame(now){
+  const dt=Math.min((now-last)/1000,0.05); last=now;
+  update(dt); render();
+  requestAnimationFrame(frame);
+}
+function update(dt){
+  if(G.msgTimer>0){G.msgTimer-=dt*1000; if(G.msgTimer<=0) msgEl.style.opacity=0;}
+  switch(G.state){
+    case "throw": G.meterT+=dt*G.meterSpeed; break;
+    case "hop":   G.barT+=dt*G.barSpeed; break;
+    case "flight":{
+      G.t+=dt; const a=G.anim, k=Math.min(G.t/a.dur,1);
+      if(k>=1){ resolveLanding(a.to); }
+      break;}
+    case "hopanim":{
+      G.t+=dt; const a=G.anim, k=Math.min(G.t/a.dur,1);
+      G.hero.x=a.from.x+(a.to.x-a.from.x)*k;
+      G.hero.y=a.from.y+(a.to.y-a.from.y)*k;
+      G.hero.air=Math.sin(Math.PI*k)*a.arc;
+      if(k>=1) hopLanded();
+      break;}
+    case "pickup":{
+      G.t+=dt;
+      G.hero.lean=Math.sin(Math.min(G.t/0.55,1)*Math.PI)*0.9;
+      if(G.t>=0.6){G.hero.lean=0; pickupDone();}
+      break;}
+    case "turnend":{
+      G.t+=dt; if(G.t>=0.9&&G.after){const f=G.after; G.after=null; f();}
+      break;}
+  }
+}
+function render(){
+  drawGround(); drawCourt();
+  // resting pebble
+  if(G.pebble) drawPebble(G.pebble.x,G.pebble.y,1);
+  // pebble in flight
+  if(G.state==="flight"){
+    const a=G.anim,k=Math.min(G.t/a.dur,1);
+    const x=a.from.x+(a.to.x-a.from.x)*k;
+    const y=a.from.y+(a.to.y-a.from.y)*k - Math.sin(Math.PI*k)*120;
+    drawPebble(x,y,1+Math.sin(Math.PI*k)*0.5);
+  }
+  // hero
+  if(G.state!=="menu"&&G.state!=="over"){
+    const shirt=curP()?curP().shirt:"#1f8a4c";
+    drawHero(G.hero.x,G.hero.y,G.hero.air,G.hero.face,G.hero.lean,shirt);
+  }
+  // input bars
+  if(G.state==="throw"){
+    const ideal=idealPower(G.target)/100;
+    drawBar("TAP to toss — box "+G.target,tri(G.meterT),ideal,0.045,"#f2b134");
+  }else if(G.state==="hop"){
+    drawBar("TAP in the green to hop",tri(G.barT),0.5,G.zoneHalf,"#4caf50");
+  }
+}
+hud();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>{% endraw %}
