@@ -65,6 +65,9 @@ const fmt = (day) => (day == null ? '—' : dateOf(day).toLocaleDateString(undef
 const dayOfISO = (iso) => Math.round((Date.parse(iso + 'T12:00:00Z') - Date.parse(state.baseDate + 'T12:00:00Z')) / DAY_MS);
 const announce = (msg) => { $('#live').textContent = msg; };
 let flash = null; // { kind, text } shown once at top of the view
+// In-page confirmation (embedded viewers block window.confirm): { action, text, yes }
+let pending = null;
+let showExport = false;
 
 const STATE_BADGE = {
   [S.CONFIRMED]: 'b-ok', [S.REVERTED]: 'b-info', [S.AWAITING_USER]: 'b-warn', [S.AWAITING_CONSENT]: 'b-warn',
@@ -93,7 +96,11 @@ function render({ focus = false } = {}) {
   const views = { verify: viewVerify, address: viewAddress, entities: viewEntities, review: viewReview, status: viewStatus };
   const f = flash ? `<div class="callout ${flash.kind}" role="status"><p>${h(flash.text)}</p></div>` : '';
   flash = null;
-  $('#view').innerHTML = f + views[state.step]();
+  const c = pending ? `<div class="callout bad" role="alertdialog" aria-labelledby="confirm-text">
+    <p id="confirm-text">${h(pending.text)}</p>
+    <div class="row"><button type="button" class="danger" data-action="confirm-yes">${h(pending.yes)}</button>
+    <button type="button" data-action="confirm-no">Keep going</button></div></div>` : '';
+  $('#view').innerHTML = c + f + views[state.step]();
   save();
   if (focus) {
     const h1 = $('#view h1');
@@ -481,9 +488,12 @@ function viewStatus() {
       <p class="muted">Retention: ${pkg.retentionDays} days after Package Closure.</p>
       ${pkg.receipt ? `<p>Closure receipt: <span class="mono">${h(pkg.receipt.packageId)}</span> · access code <span class="mono">${h(pkg.receipt.accessCode)}</span></p>` : ''}
       <div class="row">
-        <button type="button" data-action="export">Export (JSON)</button>
+        <button type="button" data-action="export" aria-expanded="${showExport}">${showExport ? 'Hide export' : 'Export (JSON)'}</button>
         ${pkg.status !== 'deleted' ? '<button type="button" class="danger" data-action="erase">Delete my data now</button>' : ''}
       </div>
+      ${showExport ? `<div class="field" style="margin-top:12px"><label for="export-json">Your move package as JSON (FR-PRV-003 portability)</label>
+        <textarea id="export-json" class="export" readonly rows="10">${h(exportPackage(pkg))}</textarea>
+        <button type="button" class="small" data-action="copy-export">Copy</button> <span id="copy-status" class="muted" aria-live="polite"></span></div>` : ''}
     </section>
     <section class="card">
       <h2>Audit log</h2>
@@ -517,10 +527,22 @@ function act(fn, okMsg) {
 
 const ACTIONS = {
   reset() {
-    if (!confirm('Reset the prototype and start over?')) return;
+    pending = { action: 'do-reset', text: 'Reset the prototype and start over? Your simulated move will be cleared.', yes: 'Reset' };
+    render();
+    window.scrollTo(0, 0);
+    $('[data-action="confirm-yes"]')?.focus();
+  },
+  'do-reset'() {
     state = freshState();
+    showExport = false;
     go('verify');
   },
+  'confirm-yes'() {
+    const next = pending?.action;
+    pending = null;
+    if (next) ACTIONS[next]();
+  },
+  'confirm-no'() { pending = null; render(); },
   idv() { state.draft.idv = true; announce('Identity verified'); render(); },
   validate() {
     const d = state.draft;
@@ -563,19 +585,33 @@ const ACTIONS = {
   uphold() { act(() => resolveDispute(state.pkg, state.day, true), 'Dispute upheld; revert orders created.'); },
   reject() { act(() => resolveDispute(state.pkg, state.day, false), 'Dispute rejected; move resumed.'); },
   export() {
-    const blob = new Blob([exportPackage(state.pkg)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${state.pkg.id}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    showExport = !showExport;
+    render();
+    $('#export-json')?.focus();
+  },
+  'copy-export'() {
+    const ta = $('#export-json');
+    const done = (msg) => { const s = $('#copy-status'); if (s) s.textContent = msg; };
+    const fallback = () => { ta.select(); done('Selected — press Ctrl+C / ⌘C to copy.'); };
+    try {
+      navigator.clipboard.writeText(ta.value).then(() => done('Copied.'), fallback);
+    } catch { fallback(); }
   },
   erase() {
     const open = disputeWindowOpen(state.pkg, state.day);
-    const msg = open
-      ? 'The dispute window is still open. Deleting now also ends fraud protection for this move and cancels unfinished changes. This cannot be undone. Delete anyway?'
-      : 'Delete all personal data for this move now? This cannot be undone.';
-    if (!confirm(msg)) return;
+    pending = {
+      action: 'do-erase',
+      yes: 'Delete my data',
+      text: open
+        ? 'The dispute window is still open. Deleting now also ends fraud protection for this move and cancels unfinished changes. This cannot be undone.'
+        : 'Delete all personal data for this move now? This cannot be undone.',
+    };
+    render();
+    window.scrollTo(0, 0);
+    $('[data-action="confirm-yes"]')?.focus();
+  },
+  'do-erase'() {
+    showExport = false;
     act(() => eraseNow(state.pkg, state.day), 'Your data was deleted. Keep your closure receipt to view the audit record.');
   },
 };

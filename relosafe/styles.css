@@ -103,6 +103,7 @@ input[type="text"], input[type="number"], input[type="date"], select {
   background: var(--surface); color: var(--text); font: inherit;
 }
 input[type="range"] { width: 100%; }
+textarea.export { width: 100%; font: 0.8rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text); margin-bottom: 8px; }
 .field { margin-bottom: 12px; }
 .addr { display: grid; grid-template-columns: 1fr 70px 110px; gap: 8px; }
 .addr .full { grid-column: 1 / -1; }
