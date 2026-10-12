@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReloSafe Prototype</title>
+  <meta name="description" content="Clickable prototype of the ReloSafe one-step address change flow (SRD v0.2), with simulated vendors and fictional institutions.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">R</span>
+        <span>ReloSafe <small>prototype · SRD v0.2</small></span>
+      </div>
+      <nav aria-label="Prototype links">
+        <a href="requirements/">Requirements</a>
+        <button type="button" class="link" data-action="reset">Reset demo</button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="banner" role="note">
+    <div class="wrap">Prototype only — identity checks, institutions, entities and vendors are <strong>simulated and fictional</strong>. Nothing is sent anywhere. Don't enter real personal data.</div>
+  </div>
+
+  <main id="main" class="wrap" tabindex="-1">
+    <ol class="steps" id="steps" aria-label="Progress"></ol>
+    <div id="live" class="sr-only" aria-live="polite"></div>
+    <div id="view"></div>
+  </main>
+
+  <footer class="wrap foot">
+    Requirement IDs (FR-…, NFR-…) refer to <a href="requirements/">RS-SRD-001 v0.2</a>.
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
